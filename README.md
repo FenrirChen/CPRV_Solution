@@ -1,11 +1,36 @@
-CVRP_HD_VNS/
- ├── data/                # 存放 Golden_1.vrp ~ Golden_20.vrp
- ├── sol/                 # 存放官方最优解 Golden_1.sol ~ Golden_20.sol
- ├── cvrp_parser.py       # VRP 文件解析模块
- ├── initial_solution.py  # 客户初始化路径生成模块
- ├── route_merge.py       # 初始路径合并模块
- ├── rco_split.py         # 路径切割（RCO）模块
- ├── hd_cluster.py        # 路径聚类与重构模块
- ├── vns_search.py        # 多邻域搜索（VNS）模块
- ├── batch_solver.py      # 主运行程序（单核）
- ├── results_summary.csv  # 实验结果汇总文件
+### (1) cvrp_parser.py：CVRP 数据解析
+- 支持标准".vrp"文件格式。
+- 输出客户列表、容量限制及 ID → 索引映射。
+- 支持 Golden 数据集中 depot 编号为 1 的结构。
+
+### (2) initial_solution.py：初始路径生成
+- 将每个客户构造成一条独立路径，数学公式: $ [Depot → Ci → Depot] $。
+- 输出 n 条路径，用于后续路径合并。
+
+### (3) route_merge.py：贪婪路径合并
+- 基于最近邻策略，将多个初始路径合并为长路径。
+- 合并过程确保每条路径的总需求不超过车辆容量。
+- 合并后路径更贴近真实配送结构，可供有效切割。
+
+### (4) rco_split.py：路径切割模块
+- 对合并路径中每两个相邻客户计算连接距离。
+- 设定切割阈值，数学公式: $ L $，差连接以高概率切断。
+- 输出较短路径片段，打破路径结构局限。
+
+### (5) hd_cluster.py：路径聚类与重构
+- 使用 KMeans 对路径片段按几何中心聚类。
+- 每个聚类中客户按顺序重构路径。
+- 若聚类内客户总需求超限，则进一步拆分。
+- 输出满足容量约束的初始可行解。
+
+### (6) vns_search.py：多邻域搜索模块
+- 路径内操作：单点插入、交换、2-opt。
+- 路径间操作：跨路径插入与交换。
+- 支持局部最优跳出，持续轮换邻域结构。
+- 返回局部搜索优化后的最终解。
+
+### (7) batch_solver.py：批量运行主程序
+- 遍历 Golden_1.vrp ~ Golden_20.vrp。
+- 每个实例执行 20 次完整HD-VNS流程。
+- 记录最优路径、平均代价、误差等指标。
+- 最终输出至results_summary.csv文件。 
